@@ -1,3 +1,14 @@
+/*
+  == COMMAND PROTOCOL ==
+  Correction commands contain 5 characters enclosed in square brackets
+  [1,2,3,4,5]
+  Value 1 - Magnitude of movment in pan (0-9)
+  Value 2 - Direction of pan movement (L, R relative to camera frame)
+  Value 3 - Magnitude of movement in tilt (0,9)
+  Value 4 - Direction of tile (U, D relative to camera frame)
+  Value 5 - Laser Activation (A to activate, D to Deactivate) 
+*/
+
 #include <ax12.h> //include the ArbotiX DYNAMIXEL library
 #include <BioloidController.h>  //include bioloid libary for poses/movements
 
@@ -28,9 +39,8 @@ void setup()
 
   panCurrentPos = dxlGetPosition(1);
   tiltCurrentPos = dxlGetPosition(2);
-  //Serial.println("Pan Position:" + panCurrentPos);
-  //Serial.println("Tilt Position:" + tiltCurrentPos);
 
+  Serial.println(tiltCurrentPos);
   Serial.println("Ready for Data");
   
 }
@@ -38,25 +48,8 @@ void setup()
 void loop() {
   getSerialCommands();
 
-  if(newCommand == true) {
-    Serial.println(command[1]);
-    newCommand = false;
-    }
-  // Get Instructions from serial
+  if(newCommand) processNewCommand();
 
-  
-  
-  
-
-  
-
-  //
-
-  
-
-  
-
-  // Handle Laser
   
   
   // put your main code here, to run repeatedly:
@@ -82,7 +75,7 @@ void getSerialCommands() {
   while(Serial.available() > 0) {
     serialData = Serial.read();
 
-    if(recievingInProgress == true) {
+    if(recievingInProgress) {
       if(serialData != endDelimiter) {
         command[idx] = serialData;
         idx++;
@@ -98,5 +91,60 @@ void getSerialCommands() {
     }
     else if(serialData == startDelimiter) { recievingInProgress = true; }
   } 
+}
+
+void processNewCommand() {
+
+  // Initialize Temporary Pan and Tilt
+  int tempPanVal = panCurrentPos;
+  int tempTiltVal = tiltCurrentPos;
+
+  // Initialize temporary Laser state
+  
+  // Process Pan
+  if(command[1] == 'L') tempPanVal += command[0];
+  if(command[1] == 'R') tempPanVal -= command[0];
+  
+  // Process Tilt
+  if(command[3] == 'U') tempTiltVal -= command[2];
+  if(command[3] == 'D') tempTiltVal += command[2];
+  
+  // Process Laser Activation
+  if(command[4] == 'A') setLaserActivation(true);
+  if(command[4] == 'D') setLaserActivation(false);
+
+  Serial.println(command);
+  
+  // Move Turret
+  if(tempPanVal < panUpperLimit && tempPanVal > panLowerLimit) {
+    dxlSetGoalPosition(1,tempPanVal);
+  }
+
+  if(tempTiltVal < tiltUpperLimit && tempTiltVal > tiltLowerLimit) {
+    dxlSetGoalPosition(2, tiltLowerLimit);
+  }
+
+  delay(1000);
+  panCurrentPos = dxlGetPosition(1);
+  tiltCurrentPos = dxlGetPosition(2);
+
+  String msg = "Current Pan Position: " + panCurrentPos;
+  Serial.println(msg);
+  //msg = "Current Tilt Postion: " + tiltCurrentPos;
+  //Serial.println(msg);
+  
+  // Update Pan and Tilt Position Values
+  newCommand = false;
+}
+
+void setLaserActivation(boolean state) {
+  if(state) {
+    // activate Laser
+    Serial.println("Activate Laser");
+  }
+  else {
+    // deactivate laser
+    Serial.println("Deactivate Laser");
+  }  
 }
   
