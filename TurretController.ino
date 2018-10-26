@@ -1,7 +1,7 @@
 /*
   == COMMAND PROTOCOL ==
   Correction commands contain 5 characters enclosed in square brackets
-  [1,2,3,4,5]
+  [12345]
   Value 1 - Magnitude of movment in pan (0-9)
   Value 2 - Magnitude of movement in tilt (0-9)
   Value 3 - Direction of pan movement (1 for left, 0 for right relative to camera frame)
