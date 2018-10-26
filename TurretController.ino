@@ -10,8 +10,6 @@
 */
 
 #include <ax12.h> //include the ArbotiX DYNAMIXEL library
-#include <BioloidController.h>  //include bioloid libary for poses/movements
-
 
 const int tiltUpperLimit = 1000;
 const int tiltLowerLimit = 3050;
@@ -56,19 +54,6 @@ void loop() {
 
   updateTurretPosition();
 
-  
-  
-  // put your main code here, to run repeatedly:
-  //dxlSetGoalPosition(1,2048);
-  //dxlSetGoalPosition(2,2048);
-  //delay(1000);
-  //dxlSetGoalPosition(1,panUpperLimit);
-  //dxlSetGoalPosition(2,tiltUpperLimit);
-  //delay(1000);
-  //dxlSetGoalPosition(2,tiltLowerLimit);
-  //dxlSetGoalPosition(1,panLowerLimit);
-  //delay(1000);
-
 }
 
 void getSerialCommands() {
@@ -111,8 +96,8 @@ void processNewCommand() {
   Serial.println(tiltDirection);
 }
 
-void setLaserActivation(boolean state) {
-  if(state) {
+void setLaserActivation() {
+  if(isLaserActive == 1) {
     // activate Laser
     Serial.println("Activate Laser");
   }
@@ -123,7 +108,9 @@ void setLaserActivation(boolean state) {
 }
 
 void updateTurretPosition() {
-  
+
+  int currentPanPosition = dxlGetPosition(1);
+  int currentTiltPosition = dxlGetPosition(2);
   int newPanPosition = dxlGetPosition(1);
   int newTiltPosition = dxlGetPosition(2);
 
@@ -137,15 +124,14 @@ void updateTurretPosition() {
     if(tiltDirection == 0) newTiltPosition += (5 * tiltVelocity);
   }
 
-  // Handle Overestimation due to amplitude
-  if(newTiltPosition < tiltUpperLimit)  { newTiltPosition  = tiltUpperLimit + 2; tiltVelocity = 0; }
-  if(newTiltPosition > tiltLowerLimit)  { newTiltPosition  = tiltLowerLimit - 2; tiltVelocity = 0; }
-  if(newPanPosition < panLowerLimit)    { newPanPosition   = panLowerLimit + 2;  panVelocity = 0;  }
-  if(newPanPosition > panUpperLimit)    { newPanPosition   = panLowerLimit - 2;  panVelocity = 0;  }
+  if(newTiltPosition < tiltUpperLimit) {newTiltPosition = tiltUpperLimit + 2; tiltVelocity = 0;}
+  if(newTiltPosition > tiltLowerLimit) {newTiltPosition = tiltLowerLimit - 2; tiltVelocity = 0;}
+
+  if(newPanPosition < panLowerLimit) {newPanPosition = panLowerLimit + 2; panVelocity = 0;}
+  if(newPanPosition > panUpperLimit) {newPanPosition = panLowerLimit - 2; panVelocity = 0;}
   
   dxlSetGoalPosition(1, newPanPosition);
   dxlSetGoalPosition(2, newTiltPosition);
-  
 
   delay(1);
 }
