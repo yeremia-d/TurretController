@@ -3,10 +3,10 @@
   Correction commands contain 5 characters enclosed in square brackets
   [1,2,3,4,5]
   Value 1 - Magnitude of movment in pan (0-9)
-  Value 2 - Direction of pan movement (L, R relative to camera frame)
-  Value 3 - Magnitude of movement in tilt (0,9)
-  Value 4 - Direction of tile (U, D relative to camera frame)
-  Value 5 - Laser Activation (A to activate, D to Deactivate) 
+  Value 2 - Magnitude of movement in tilt (0-9)
+  Value 3 - Direction of pan movement (1 for left, 0 for right relative to camera frame)
+  Value 4 - Direction of tile (1 for up, 0 for down relative to camera frame)
+  Value 5 - Laser Activation (1 to activate, 0 to Deactivate) 
 */
 
 #include <ax12.h> //include the ArbotiX DYNAMIXEL library
@@ -18,9 +18,14 @@ const int tiltLowerLimit = 3050;
 const int panUpperLimit = 4090;
 const int panLowerLimit = 0;
 
-int isLaserOn;
+int isLaserActive;
 int panCurrentPos;
 int tiltCurrentPos;
+
+int panVelocity = 0;
+int tiltVelocity = 0;
+int panDirection = 1;
+int tiltDirection = 1;
 
 const byte commandSize = 6;
 char command[commandSize];
@@ -40,7 +45,6 @@ void setup()
   panCurrentPos = dxlGetPosition(1);
   tiltCurrentPos = dxlGetPosition(2);
 
-  Serial.println(tiltCurrentPos);
   Serial.println("Ready for Data");
   
 }
@@ -49,6 +53,8 @@ void loop() {
   getSerialCommands();
 
   if(newCommand) processNewCommand();
+
+  updateTurretPosition();
 
   
   
@@ -95,46 +101,14 @@ void getSerialCommands() {
 
 void processNewCommand() {
 
-  // Initialize Temporary Pan and Tilt
-  int tempPanVal = panCurrentPos;
-  int tempTiltVal = tiltCurrentPos;
+  panVelocity   = command[0] - '0';
+  tiltVelocity  = command[1] - '0';
+  panDirection  = command[2] - '0';
+  tiltDirection = command[3] - '0';
+  isLaserActive = command[4] - '0';
+  newCommand    = false;
 
-  // Initialize temporary Laser state
-  
-  // Process Pan
-  if(command[1] == 'L') tempPanVal += command[0];
-  if(command[1] == 'R') tempPanVal -= command[0];
-  
-  // Process Tilt
-  if(command[3] == 'U') tempTiltVal -= command[2];
-  if(command[3] == 'D') tempTiltVal += command[2];
-  
-  // Process Laser Activation
-  if(command[4] == 'A') setLaserActivation(true);
-  if(command[4] == 'D') setLaserActivation(false);
-
-  Serial.println(command);
-  
-  // Move Turret
-  if(tempPanVal < panUpperLimit && tempPanVal > panLowerLimit) {
-    dxlSetGoalPosition(1,tempPanVal);
-  }
-
-  if(tempTiltVal < tiltUpperLimit && tempTiltVal > tiltLowerLimit) {
-    dxlSetGoalPosition(2, tiltLowerLimit);
-  }
-
-  delay(1000);
-  panCurrentPos = dxlGetPosition(1);
-  tiltCurrentPos = dxlGetPosition(2);
-
-  String msg = "Current Pan Position: " + panCurrentPos;
-  Serial.println(msg);
-  //msg = "Current Tilt Postion: " + tiltCurrentPos;
-  //Serial.println(msg);
-  
-  // Update Pan and Tilt Position Values
-  newCommand = false;
+  Serial.println(tiltDirection);
 }
 
 void setLaserActivation(boolean state) {
@@ -146,5 +120,33 @@ void setLaserActivation(boolean state) {
     // deactivate laser
     Serial.println("Deactivate Laser");
   }  
+}
+
+void updateTurretPosition() {
+  
+  int newPanPosition = dxlGetPosition(1);
+  int newTiltPosition = dxlGetPosition(2);
+
+  if(currentPanPosition >= panLowerLimit && currentPanPosition <= panUpperLimit) {
+    if(panDirection == 1) newPanPosition +=  (4*panVelocity);
+    if(panDirection == 0) newPanPosition -=  (4*panVelocity); 
+  }
+
+  if(currentTiltPosition >= tiltUpperLimit && currentTiltPosition <= tiltLowerLimit) {
+    if(tiltDirection == 1) newTiltPosition -= (5 * tiltVelocity);
+    if(tiltDirection == 0) newTiltPosition += (5 * tiltVelocity);
+  }
+
+  // Handle Overestimation due to amplitude
+  if(newTiltPosition < tiltUpperLimit)  { newTiltPosition  = tiltUpperLimit + 2; tiltVelocity = 0; }
+  if(newTiltPosition > tiltLowerLimit)  { newTiltPosition  = tiltLowerLimit - 2; tiltVelocity = 0; }
+  if(newPanPosition < panLowerLimit)    { newPanPosition   = panLowerLimit + 2;  panVelocity = 0;  }
+  if(newPanPosition > panUpperLimit)    { newPanPosition   = panLowerLimit - 2;  panVelocity = 0;  }
+  
+  dxlSetGoalPosition(1, newPanPosition);
+  dxlSetGoalPosition(2, newTiltPosition);
+  
+
+  delay(1);
 }
   
