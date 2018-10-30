@@ -35,8 +35,7 @@ void setup()
   Serial.begin(9600); //start serial at 9600bps
 
   pinMode(0, OUTPUT); // Sets the laser pinmode as output
-
-  
+  digitalWrite(0, LOW);
   
   dxlServoReport(); //scan for all servos
 
