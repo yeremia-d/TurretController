@@ -32,7 +32,12 @@ bool newCommand = false;
 void setup()
 {
   dxlInit(1000000);  //start dynamixel library at 1mbps to communicate with the servos
-  Serial.begin(9600); //start serial at 9600bps  
+  Serial.begin(9600); //start serial at 9600bps
+
+  pinMode(0, OUTPUT); // Sets the laser pinmode as output
+
+  
+  
   dxlServoReport(); //scan for all servos
 
   // Initialize Positions
@@ -93,17 +98,21 @@ void processNewCommand() {
   isLaserActive = command[4] - '0';
   newCommand    = false;
 
-  Serial.println(tiltDirection);
+  // Sets the laser activation
+  setLaserActivation();
+  
 }
 
 void setLaserActivation() {
   if(isLaserActive == 1) {
     // activate Laser
     Serial.println("Activate Laser");
+    digitalWrite(0, HIGH);
   }
   else {
     // deactivate laser
     Serial.println("Deactivate Laser");
+    digitalWrite(0, LOW);
   }  
 }
 
